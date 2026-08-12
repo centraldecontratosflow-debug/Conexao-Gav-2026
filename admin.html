@@ -453,7 +453,7 @@
   // CONFIGURAÇÃO: cole aqui a URL do seu Google Apps Script Web App
   // (a mesma URL usada em index.html)
   // ============================================================
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrZFtQ3_jFMTnbuhoRY4LnHVWA2wdagHW5h5QcYpahNjud2Z1iWM7_cpU5aSkZXK_gsQ/exec";
+  const GOOGLE_SCRIPT_URL = "COLE_AQUI_A_URL_DO_APPS_SCRIPT";
 
   function jsonp(url, params) {
     return new Promise(function (resolve, reject) {
@@ -744,7 +744,59 @@
       + statCardHtml('CSAT médio', fmt(csatMedio) + ' <small>/5</small>')
       + statCardHtml('Salas avaliadas', new Set(respostas.map(function (r) { return r.sala; })).size);
 
-    // ---- Gráfico: médias por bloco de pergunta ----
+    // ---- Tabela (renderiza sempre, mesmo se os gráficos falharem abaixo) ----
+    if (!respostas.length) {
+      respTableBody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhuma resposta ainda.</td></tr>';
+    } else {
+      respTableBody.innerHTML = respostas.slice(0, 200).map(function (r) {
+        const data = r.timestamp ? new Date(r.timestamp).toLocaleString('pt-BR') : '—';
+        return '<tr>'
+          + '<td>' + data + '</td>'
+          + '<td>' + escapeHtml(r.sala) + '</td>'
+          + '<td>' + escapeHtml(r.email) + '</td>'
+          + '<td>' + r.q1 + '</td>'
+          + '<td>' + r.q2 + '</td>'
+          + '<td>' + r.q3 + '</td>'
+          + '<td>' + r.q4 + '</td>'
+          + '<td class="csat-cell">' + r.csat + '</td>'
+          + '<td class="feedback-cell">' + escapeHtml(r.feedback) + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+    tableNote.textContent = respostas.length > 200
+      ? 'Mostrando as 200 respostas mais recentes de ' + respostas.length + '. Use "Baixar CSV" para ver todas.'
+      : respostas.length + ' resposta(s).';
+
+    // ---- Gráficos (isolados em try/catch: se a biblioteca não carregar, o resto da tela continua funcionando) ----
+    if (typeof Chart === 'undefined') {
+      mostrarAvisoSemGrafico('chartGeral', 'Gráfico indisponível: a biblioteca de gráficos não carregou (verifique a conexão com a internet).');
+      mostrarAvisoSemGrafico('chartSala', 'Gráfico indisponível: a biblioteca de gráficos não carregou (verifique a conexão com a internet).');
+      return;
+    }
+
+    try {
+      renderGraficoGeral(q1Medio, q2Medio, q3Medio, q4Medio, csatMedio);
+    } catch (err) {
+      console.error('Falha no gráfico geral:', err);
+      mostrarAvisoSemGrafico('chartGeral', 'Não foi possível desenhar este gráfico.');
+    }
+
+    try {
+      renderGraficoPorSala();
+    } catch (err) {
+      console.error('Falha no gráfico por sala:', err);
+      mostrarAvisoSemGrafico('chartSala', 'Não foi possível desenhar este gráfico.');
+    }
+  }
+
+  function mostrarAvisoSemGrafico(canvasId, mensagem) {
+    const canvas = document.getElementById(canvasId);
+    if (canvas && canvas.parentNode) {
+      canvas.parentNode.innerHTML = '<div class="empty-state">' + mensagem + '</div>';
+    }
+  }
+
+  function renderGraficoGeral(q1Medio, q2Medio, q3Medio, q4Medio, csatMedio) {
     const ctxGeral = document.getElementById('chartGeral').getContext('2d');
     const dadosGeral = {
       labels: ['Conteúdo', 'Organização', 'Relevância', 'Domínio', 'CSAT geral'],
@@ -766,8 +818,9 @@
         scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } }
       }
     });
+  }
 
-    // ---- Gráfico: CSAT médio por sala (todas as salas, ignora filtro) ----
+  function renderGraficoPorSala() {
     const porSala = {};
     todasRespostas.forEach(function (r) {
       if (!porSala[r.sala]) porSala[r.sala] = [];
@@ -799,29 +852,6 @@
         scales: { x: { min: 0, max: 5, ticks: { stepSize: 1 } } }
       }
     });
-
-    // ---- Tabela ----
-    if (!respostas.length) {
-      respTableBody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhuma resposta ainda.</td></tr>';
-    } else {
-      respTableBody.innerHTML = respostas.slice(0, 200).map(function (r) {
-        const data = r.timestamp ? new Date(r.timestamp).toLocaleString('pt-BR') : '—';
-        return '<tr>'
-          + '<td>' + data + '</td>'
-          + '<td>' + escapeHtml(r.sala) + '</td>'
-          + '<td>' + escapeHtml(r.email) + '</td>'
-          + '<td>' + r.q1 + '</td>'
-          + '<td>' + r.q2 + '</td>'
-          + '<td>' + r.q3 + '</td>'
-          + '<td>' + r.q4 + '</td>'
-          + '<td class="csat-cell">' + r.csat + '</td>'
-          + '<td class="feedback-cell">' + escapeHtml(r.feedback) + '</td>'
-          + '</tr>';
-      }).join('');
-    }
-    tableNote.textContent = respostas.length > 200
-      ? 'Mostrando as 200 respostas mais recentes de ' + respostas.length + '. Use "Baixar CSV" para ver todas.'
-      : respostas.length + ' resposta(s).';
   }
 
   function statCardHtml(label, value, highlight) {
