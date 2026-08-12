@@ -453,7 +453,7 @@
   // CONFIGURAÇÃO: cole aqui a URL do seu Google Apps Script Web App
   // (a mesma URL usada em index.html)
   // ============================================================
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrZFtQ3_jFMTnbuhoRY4LnHVWA2wdagHW5h5QcYpahNjud2Z1iWM7_cpU5aSkZXK_gsQ/exec";
+  const GOOGLE_SCRIPT_URL = "COLE_AQUI_A_URL_DO_APPS_SCRIPT";
 
   function jsonp(url, params) {
     return new Promise(function (resolve, reject) {
@@ -488,25 +488,69 @@
   const app = document.getElementById('app');
   const pinInput = document.getElementById('pinInput');
   const pinErr = document.getElementById('pinErr');
+  const pinBtn = document.getElementById('pinBtn');
   let PIN = sessionStorage.getItem('gav_admin_pin') || '';
 
-  function entrar() {
-    PIN = pinInput.value.trim();
-    if (!PIN) return;
-    // valida tentando uma ação real (desativarTudo com noop se já vazio seria destrutivo,
-    // então validamos buscando a lista e testando o pin só na primeira ativação real)
-    sessionStorage.setItem('gav_admin_pin', PIN);
+  function mostrarPainel() {
     gate.style.display = 'none';
     app.classList.add('show');
     carregarSalas();
     carregarSalaAtiva();
   }
+
+  function voltarParaLogin(mensagem) {
+    sessionStorage.removeItem('gav_admin_pin');
+    PIN = '';
+    app.classList.remove('show');
+    gate.style.display = 'block';
+    pinInput.value = '';
+    if (mensagem) {
+      pinErr.textContent = mensagem;
+      pinErr.classList.add('show');
+    }
+    pinInput.focus();
+  }
+
+  function entrar() {
+    const digitado = pinInput.value.trim();
+    if (!digitado) return;
+    pinErr.classList.remove('show');
+    pinBtn.disabled = true;
+    pinBtn.textContent = 'Verificando...';
+    jsonp(GOOGLE_SCRIPT_URL, { action: 'validarPin', pin: digitado })
+      .then(function (data) {
+        pinBtn.disabled = false;
+        pinBtn.textContent = 'Entrar';
+        if (data.valido) {
+          PIN = digitado;
+          sessionStorage.setItem('gav_admin_pin', PIN);
+          mostrarPainel();
+        } else {
+          pinErr.textContent = 'PIN incorreto. Tente novamente.';
+          pinErr.classList.add('show');
+        }
+      })
+      .catch(function (err) {
+        pinBtn.disabled = false;
+        pinBtn.textContent = 'Entrar';
+        pinErr.textContent = 'Não foi possível verificar o PIN agora. Confira sua conexão.';
+        pinErr.classList.add('show');
+        console.error(err);
+      });
+  }
   document.getElementById('pinBtn').addEventListener('click', entrar);
   pinInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') entrar(); });
 
+  // Se já tinha um PIN salvo de uma sessão anterior, confirma que ainda é válido
+  // antes de liberar o painel (evita ficar "preso" com um PIN velho/errado).
   if (PIN) {
-    gate.style.display = 'none';
-    app.classList.add('show');
+    jsonp(GOOGLE_SCRIPT_URL, { action: 'validarPin', pin: PIN }).then(function (data) {
+      if (data.valido) mostrarPainel();
+      else voltarParaLogin('Sua sessão expirou. Digite o PIN novamente.');
+    }).catch(function () {
+      // sem conexão pra validar agora: libera otimisticamente, as ações escritas ainda são checadas no servidor
+      mostrarPainel();
+    });
   }
 
   // ---- Tabs ----
@@ -591,8 +635,7 @@
     document.querySelectorAll('.sala-btn').forEach(function (b) { b.disabled = true; });
     jsonp(GOOGLE_SCRIPT_URL, { action: 'ativarSala', sala: nome, pin: PIN }).then(function (data) {
       if (data.error === 'pin_invalido') {
-        toast('PIN incorreto — recarregue a página e digite novamente.');
-        sessionStorage.removeItem('gav_admin_pin');
+        voltarParaLogin('Sua sessão expirou. Digite o PIN novamente.');
         return;
       }
       toast('"' + nome + '" ativada. Os avaliadores já veem essa sala.');
@@ -610,8 +653,7 @@
     btnDesativar.disabled = true;
     jsonp(GOOGLE_SCRIPT_URL, { action: 'desativarTudo', pin: PIN }).then(function (data) {
       if (data.error === 'pin_invalido') {
-        toast('PIN incorreto — recarregue a página e digite novamente.');
-        sessionStorage.removeItem('gav_admin_pin');
+        voltarParaLogin('Sua sessão expirou. Digite o PIN novamente.');
         return;
       }
       toast('Avaliação encerrada. Nenhuma sala ativa.');
@@ -643,8 +685,7 @@
     statCards.innerHTML = '<div class="empty-state">Carregando respostas…</div>';
     jsonp(GOOGLE_SCRIPT_URL, { action: 'respostas', pin: PIN }).then(function (data) {
       if (data.error === 'pin_invalido') {
-        toast('PIN incorreto — recarregue a página e digite novamente.');
-        sessionStorage.removeItem('gav_admin_pin');
+        voltarParaLogin('Sua sessão expirou. Digite o PIN novamente.');
         return;
       }
       todasRespostas = (data.respostas || []).sort(function (a, b) {
