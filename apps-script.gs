@@ -32,9 +32,6 @@ function doGet(e) {
       desativarTudo();
       result = { status: 'ok' };
       break;
-    case 'jaRespondeu':
-      result = { respondeu: jaRespondeu(e.parameter.email, e.parameter.sala) };
-      break;
     case 'enviarResposta':
       result = enviarResposta(e.parameter);
       break;
@@ -178,35 +175,15 @@ function getRespostasSheet() {
   return sheet;
 }
 
-function normalizarEmail(email) {
-  return (email || '').toString().trim().toLowerCase();
-}
-
-// Verifica se este e-mail já respondeu esta sala específica
-function jaRespondeu(email, sala) {
-  var emailNorm = normalizarEmail(email);
-  if (!emailNorm || !sala) return false;
-  var sheet = getRespostasSheet();
-  var values = sheet.getDataRange().getValues();
-  for (var i = 1; i < values.length; i++) {
-    var salaLinha = (values[i][1] || '').toString().trim();
-    var emailLinha = normalizarEmail(values[i][2]);
-    if (salaLinha === sala.toString().trim() && emailLinha === emailNorm) return true;
-  }
-  return false;
-}
-
 // Verifica de novo (evita corrida entre duas abas abertas) e só então grava
 function enviarResposta(data) {
-  if (!normalizarEmail(data.email)) return { error: 'email_obrigatorio' };
   if (!data.sala) return { error: 'sala_ausente' };
-  if (jaRespondeu(data.email, data.sala)) return { error: 'ja_respondeu' };
 
   var sheet = getRespostasSheet();
   sheet.appendRow([
     data.timestamp || new Date().toISOString(),
     data.sala,
-    normalizarEmail(data.email),
+    '', // pesquisa anônima — e-mail não é mais coletado
     data.q1_conteudo,
     data.q2_organizacao_tempo,
     data.q3_relevancia_assuntos,
