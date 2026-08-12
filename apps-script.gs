@@ -13,6 +13,9 @@ function doGet(e) {
   var result;
 
   switch (action) {
+    case 'validarPin':
+      result = { valido: e.parameter.pin === ADMIN_PIN };
+      break;
     case 'salas':
       result = getSalas();
       break;
@@ -105,7 +108,8 @@ var NOMES_SALAS = [
   'Gramado - Nasa',
   'Gramado - Noite',
   'Gunga',
-  'Hotel Park',
+  'Park Hotel',
+  'Beach Hotel',
   'Jericoacoara - Lagoa',
   'Jericoacoara - Vila',
   'Maceió - Noite',
@@ -120,7 +124,7 @@ var NOMES_SALAS = [
   'Porto de Galinhas - Noite',
   'Praia do Francês',
   'Pyrenéus Hotel',
-  'Salinópolis Atalaia',
+  'Teste',
   'Vendas Digitais'
 ];
 
@@ -142,8 +146,11 @@ function setupSalas() {
 function resetSalasComListaReal() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('Salas');
-  if (sheet) ss.deleteSheet(sheet);
-  sheet = ss.insertSheet('Salas');
+  if (!sheet) {
+    sheet = ss.insertSheet('Salas');
+  } else {
+    sheet.clear(); // limpa o conteúdo em vez de apagar a aba (evita erro quando é a única aba da planilha)
+  }
   sheet.appendRow(['Sala', 'Ativa']);
   NOMES_SALAS.forEach(function (nome) {
     sheet.appendRow([nome, false]);
