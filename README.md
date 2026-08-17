@@ -10,8 +10,9 @@ dia do evento.
 | Arquivo | O que é |
 |---|---|
 | `index.html` | A página que o **avaliador** (participante) acessa para responder a pesquisa |
-| `admin.html` | O **painel do palestrante**: ativa/desativa a sala em avaliação e mostra o dashboard de resultados |
-| `apps-script.gs` | O "backend" — código que roda dentro do Google Sheets e conecta os dois HTMLs à planilha |
+| `presenca.html` | A página de **lista de presença** — coleta nome e função de quem está na sala ativa no momento |
+| `admin.html` | O **painel do palestrante**: ativa/desativa a sala em avaliação e mostra o dashboard de resultados e de presença |
+| `apps-script.gs` | O "backend" — código que roda dentro do Google Sheets e conecta os três HTMLs à planilha |
 
 **Como funciona, em resumo:** o palestrante abre `admin.html`, ativa a sala onde
 está apresentando (ex: "Muro Alto"). Só quem acessa `index.html` nesse momento
@@ -80,9 +81,9 @@ funcionar mesmo sem nenhuma experiência técnica. São ~20 minutos, feitos uma
    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycb.../exec";
    ```
 4. Salve o arquivo (Ctrl+S), mantendo o nome `index.html` e o formato "somente texto" (não deixe o Bloco de Notas trocar para `.txt`).
-5. Repita os passos 1 a 4 no arquivo `admin.html` — a mesma URL, no mesmo formato de linha.
+5. Repita os passos 1 a 4 nos arquivos `admin.html` e `presenca.html` — a mesma URL, no mesmo formato de linha, nos três arquivos.
 
-**Atenção:** é a mesma URL nos dois arquivos. Se um dia você reimplantar o Apps Script e gerar uma URL nova, tem que atualizar nos dois.
+**Atenção:** é a mesma URL nos três arquivos. Se um dia você reimplantar o Apps Script e gerar uma URL nova, tem que atualizar nos três.
 
 ## Parte 5 — Publicar o site (GitHub Pages, gratuito)
 
@@ -93,7 +94,7 @@ funcionar mesmo sem nenhuma experiência técnica. São ~20 minutos, feitos uma
    - Marque a opção **Public**
    - Clique em **Create repository**
 4. Na página que abrir, clique no link **uploading an existing file**.
-5. Arraste os três arquivos para a caixa: `index.html`, `admin.html` e `apps-script.gs` (esse último é só backup, não é obrigatório subir).
+5. Arraste os quatro arquivos para a caixa: `index.html`, `admin.html`, `presenca.html` e `apps-script.gs` (esse último é só backup, não é obrigatório subir).
 6. Role para baixo e clique em **Commit changes**.
 7. Vá na aba **Settings** do repositório (menu superior) → no menu da esquerda clique em **Pages**.
 8. Em **Build and deployment → Source**, selecione **Deploy from a branch**.
@@ -103,15 +104,17 @@ funcionar mesmo sem nenhuma experiência técnica. São ~20 minutos, feitos uma
     https://seu-usuario.github.io/conexao-gav-pesquisa/
     ```
 
-## Parte 6 — Seus dois links finais
+## Parte 6 — Seus três links finais
 
-- **Link do avaliador** (manda pros participantes, QR code, etc.):
+- **Link do avaliador** (pesquisa de satisfação, manda pros participantes, QR code, etc.):
   `https://seu-usuario.github.io/conexao-gav-pesquisa/`
+- **Link da lista de presença** (nome + função, outro QR code):
+  `https://seu-usuario.github.io/conexao-gav-pesquisa/presenca.html`
 - **Link do admin** (só você/o palestrante usa):
   `https://seu-usuario.github.io/conexao-gav-pesquisa/admin.html`
 
-Dica: gere um QR code do link do avaliador (qualquer gerador gratuito de QR
-code na internet, ex. buscar "gerador de qr code grátis") e deixe exposto na
+Dica: gere QR codes separados para o link do avaliador e o da lista de presença
+(qualquer gerador gratuito de QR code na internet) e deixe os dois expostos na
 sala.
 
 ## Parte 7 — Testando antes do evento

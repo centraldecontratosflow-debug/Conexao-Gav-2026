@@ -39,6 +39,13 @@ function doGet(e) {
       if (e.parameter.pin !== ADMIN_PIN) { result = { error: 'pin_invalido' }; break; }
       result = { respostas: getRespostasParaDashboard() };
       break;
+    case 'enviarPresenca':
+      result = enviarPresenca(e.parameter);
+      break;
+    case 'presencas':
+      if (e.parameter.pin !== ADMIN_PIN) { result = { error: 'pin_invalido' }; break; }
+      result = { presencas: getPresencasParaDashboard() };
+      break;
     case 'planilhaUrl':
       if (e.parameter.pin !== ADMIN_PIN) { result = { error: 'pin_invalido' }; break; }
       result = { url: SpreadsheetApp.getActiveSpreadsheet().getUrl() };
@@ -215,6 +222,52 @@ function getRespostasParaDashboard() {
     });
   }
   return respostas;
+}
+
+// ---------- Aba Presença ----------
+function getPresencaSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Presença');
+  if (!sheet) sheet = ss.insertSheet('Presença');
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Timestamp', 'Sala', 'Nome', 'Função']);
+  }
+  return sheet;
+}
+
+function enviarPresenca(data) {
+  if (!data.sala) return { error: 'sala_ausente' };
+  var nome = (data.nome || '').toString().trim();
+  var funcao = (data.funcao || '').toString().trim();
+  if (!nome) return { error: 'nome_obrigatorio' };
+  if (!funcao) return { error: 'funcao_obrigatoria' };
+
+  var sheet = getPresencaSheet();
+  sheet.appendRow([
+    data.timestamp || new Date().toISOString(),
+    data.sala,
+    nome,
+    funcao
+  ]);
+  return { status: 'ok' };
+}
+
+// Retorna todos os registros de presença já formatados para o dashboard do admin
+function getPresencasParaDashboard() {
+  var sheet = getPresencaSheet();
+  var values = sheet.getDataRange().getValues();
+  var presencas = [];
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    if (!row[0] && !row[1]) continue;
+    presencas.push({
+      timestamp: row[0] instanceof Date ? row[0].toISOString() : row[0],
+      sala: row[1],
+      nome: row[2],
+      funcao: row[3]
+    });
+  }
+  return presencas;
 }
 
 // ---------- Utilitário JSONP ----------
